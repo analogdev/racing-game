@@ -1,3 +1,6 @@
 export * from './Chassis'
 export * from './Vehicle'
 export * from './Wheel'
+export * from './vehicel-helper'
+export * from './F1Chassis'
+export * from './PorscheChassis'

@@ -10,7 +10,13 @@ const getTime = (finished: number, start: number) => {
 
 export function Clock() {
   const ref = useRef<HTMLSpanElement>(null)
-  const { finished, start } = useStore(({ finished, start }) => ({ finished, start }))
+  const { finished, start, bestFinish, lastFinish, timePenalty } = useStore(({ finished, start, bestFinish, lastFinish, timePenalty }) => ({
+    finished,
+    start,
+    bestFinish,
+    lastFinish,
+    timePenalty,
+  }))
 
   let text = getTime(finished, start)
 
@@ -19,13 +25,12 @@ export function Clock() {
     return addEffect((time) => {
       if (!ref.current || time - lastTime < 100) return
       lastTime = time
-      text = getTime(finished, start)
+      text = getTime(finished, start) + '\nB: ' + readableTime(bestFinish) + '\nL: ' + readableTime(lastFinish) + '\n+ ' + timePenalty
       if (ref.current.innerText !== text) {
         ref.current.innerText = text
       }
     })
-  }, [finished, start])
-
+  }, [finished, start, timePenalty, bestFinish, lastFinish])
   return (
     <div className="clock">
       <span ref={ref}>{text}</span>
