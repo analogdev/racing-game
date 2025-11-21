@@ -7,8 +7,8 @@ export function Cameras() {
     <OrthographicCamera makeDefault={editor} position={[0, 50, 0]} zoom={20} />
   ) : (
     <>
-      <PerspectiveCamera makeDefault={!editor && camera !== 'BIRD_EYE'} fov={75} rotation={[0, Math.PI, 0]} position={[0, 10, -20]} />
-      <OrthographicCamera makeDefault={!editor && camera === 'BIRD_EYE'} position={[0, 100, 0]} rotation={[(-1 * Math.PI) / 2, 0, Math.PI]} zoom={15} />
+      <PerspectiveCamera frustumCulled={false} makeDefault={!editor && camera !== 'BIRD_EYE'} rotation={[0, Math.PI, 0]} position={[0, 10, -20]} />
+      <OrthographicCamera frustumCulled={false} makeDefault={!editor && camera === 'BIRD_EYE'} position={[0, 100, 0]} rotation={[(-1 * Math.PI) / 2, 0, Math.PI]} zoom={15} />
     </>
   )
 }
