@@ -1,20 +1,18 @@
 import debounce from 'lodash-es/debounce'
 import clamp from 'lodash-es/clamp'
-import { forwardRef, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
-import { useBox } from '@react-three/cannon'
-import { useGLTF, PositionalAudio } from '@react-three/drei'
-import { useFrame } from '@react-three/fiber'
-import { Color, Vector3, MathUtils } from 'three'
-
 import type { PropsWithChildren } from 'react'
-import type { BoxProps } from '@react-three/cannon'
-import type { GLTF } from 'three-stdlib'
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import type { BoxProps, CollideEvent } from '@react-three/cannon'
+import { useBox } from '@react-three/cannon'
+import { PositionalAudio, useGLTF } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
 import type { BoxBufferGeometry, Group, Mesh, MeshStandardMaterial, PositionalAudio as PositionalAudioImpl } from 'three'
-import type { CollideEvent } from '@react-three/cannon'
-
-import { getState, setState, mutation, useStore } from '../../store'
+import { Color, MathUtils, Quaternion, Vector3 } from 'three'
+import type { GLTF } from 'three-stdlib'
 
 import type { Camera, Controls } from '../../store'
+import { getState, mutation, setState, useStore } from '../../store'
+import { gameRoom } from '../../network/api'
 
 const { lerp } = MathUtils
 
@@ -26,7 +24,7 @@ source: https://sketchfab.com/3d-models/classic-muscle-car-641efc889e5f4543bae51
 title: Classic Muscle car
 */
 
-interface ChassisGLTF extends GLTF {
+export interface ChassisGLTF extends GLTF {
   nodes: {
     Chassis_1: Mesh
     Chassis_2: Mesh
@@ -101,7 +99,7 @@ export const Chassis = forwardRef<Group, PropsWithChildren<BoxProps>>(({ args = 
         const rpmTarget = Math.max(((gearPosition % 1) + Math.log(gearPosition)) / 6, 0)
         Object.assign(mutation, { rpmTarget, speed, velocity })
       }),
-    [maxSpeed],
+    [],
   )
 
   let camera: Camera
@@ -117,6 +115,23 @@ export const Chassis = forwardRef<Group, PropsWithChildren<BoxProps>>(({ args = 
     if (wheel.current) wheel.current.rotation.z = lerp(wheel.current.rotation.z, controls.left ? -Math.PI : controls.right ? Math.PI : 0, delta)
     needle.current.rotation.y = (mutation.speed / maxSpeed) * -Math.PI * 2 - 0.9
     chassis_1.current.material.color.lerp(c.set(getState().color), 0.1)
+
+    if (chassis_1.current.parent) {
+      const _position = new Vector3()
+      chassis_1.current.getWorldPosition(_position)
+
+      const _rotation = new Quaternion()
+      chassis_1.current.getWorldQuaternion(_rotation)
+
+      const _worldDirection = new Vector3()
+      chassis_1.current.getWorldDirection(_worldDirection)
+
+      gameRoom.send('movementData', {
+        position: { x: _position.x, y: _position.y, z: _position.z },
+        rotation: { w: _rotation.w, x: _rotation.x, y: _rotation.y, z: _rotation.z },
+        direction: { x: _worldDirection.x, y: _worldDirection.y, z: _worldDirection.z },
+      })
+    }
   })
 
   return (

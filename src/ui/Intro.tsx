@@ -34,20 +34,13 @@ export function Intro({ children }: { children: ReactNode }): JSX.Element {
         <div className="stack">
           <div className="intro-keys">
             <Keys style={{ paddingBottom: 20 }} />
-            <a className="start-link" href="#" onClick={() => setClicked(true)}>
-              {loading ? `loading ${progress.toFixed()} %` : 'Click to start'}
-            </a>
+            <p>
+              { loading ?
+                  `loading ${progress.toFixed()} %` :
+                  (<a className="start-link" href="#" onClick={() => setClicked(true)}>{ 'Click to start'}</a>)
+              }
+            </p>
           </div>
-          {session?.user?.aud !== 'authenticated' ? (
-            <Auth />
-          ) : (
-            <div>
-              Hello {session.user.user_metadata.full_name}
-              <button className="logout" onClick={unAuthenticateUser}>
-                Logout
-              </button>{' '}
-            </div>
-          )}
         </div>
         <Footer
           date="2. June"

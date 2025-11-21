@@ -1,27 +1,25 @@
 import { MathUtils, Vector3 } from 'three'
 import { useLayoutEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import type { RaycastVehicleProps, WheelInfoOptions } from '@react-three/cannon'
 import { useRaycastVehicle } from '@react-three/cannon'
 
-import type { PropsWithChildren } from 'react'
-import type { BoxProps, RaycastVehicleProps, WheelInfoOptions } from '@react-three/cannon'
-
-import { AccelerateAudio, BoostAudio, Boost, BrakeAudio, Dust, EngineAudio, HonkAudio, Skid } from '../../effects'
+import { AccelerateAudio, Boost, BoostAudio, BrakeAudio, Dust, EngineAudio, HonkAudio, Skid } from '../../effects'
+import type { Camera, Controls, WheelInfo } from '../../store'
 import { getState, mutation, useStore } from '../../store'
 import { useToggle } from '../../useToggle'
 import { Chassis } from './Chassis'
 import { Wheel } from './Wheel'
 
-import type { Camera, Controls, WheelInfo } from '../../store'
-
 const { lerp } = MathUtils
 const v = new Vector3()
 
-type VehicleProps = PropsWithChildren<Pick<BoxProps, 'angularVelocity' | 'position' | 'rotation'>>
 type DerivedWheelInfo = WheelInfo & Required<Pick<WheelInfoOptions, 'chassisConnectionPointLocal' | 'isFrontWheel'>>
 
-export function Vehicle({ angularVelocity, children, position, rotation }: VehicleProps) {
+export function Vehicle(props: any) {
   const defaultCamera = useThree((state) => state.camera)
+
+  const { angularVelocity, children, position, rotation } = props
   const [chassisBody, vehicleConfig, wheelInfo, wheels] = useStore((s) => [s.chassisBody, s.vehicleConfig, s.wheelInfo, s.wheels])
   const { back, force, front, height, maxBrake, steer, maxSpeed, width } = vehicleConfig
 
@@ -40,7 +38,6 @@ export function Vehicle({ angularVelocity, children, position, rotation }: Vehic
     wheels,
     wheelInfos,
   }
-
   const [, api] = useRaycastVehicle(() => raycast, null, [wheelInfo])
 
   useLayoutEffect(() => api.sliding.subscribe((sliding) => (mutation.sliding = sliding)), [api])
@@ -75,6 +72,7 @@ export function Vehicle({ angularVelocity, children, position, rotation }: Vehic
       delta * 20,
     )
     steeringValue = lerp(steeringValue, controls.left || controls.right ? steer * (controls.left && !controls.right ? 1 : -1) : 0, delta * 20)
+
     for (i = 2; i < 4; i++) api.applyEngineForce(speed < maxSpeed ? engineValue : 0, i)
     for (i = 0; i < 2; i++) api.setSteeringValue(steeringValue, i)
     for (i = 2; i < 4; i++) api.setBrake(controls.brake ? (controls.forward ? maxBrake / 1.5 : maxBrake) : 0, i)
@@ -97,9 +95,6 @@ export function Vehicle({ angularVelocity, children, position, rotation }: Vehic
       )
     }
 
-    // lean chassis
-    chassisBody.current!.children[0].rotation.z = MathUtils.lerp(chassisBody.current!.children[0].rotation.z, (-steeringValue * speed) / 200, delta * 4)
-
     // Camera sway
     swaySpeed = isBoosting ? 60 : 30
     swayTarget = isBoosting ? (speed / maxSpeed) * 8 : (speed / maxSpeed) * 2
@@ -107,9 +102,14 @@ export function Vehicle({ angularVelocity, children, position, rotation }: Vehic
     defaultCamera.rotation.z += (Math.sin(state.clock.elapsedTime * swaySpeed * 0.9) / 1000) * swayValue
     defaultCamera.rotation.x += (Math.sin(state.clock.elapsedTime * swaySpeed) / 1000) * swayValue
 
-    // Vibrations
-    chassisBody.current!.children[0].rotation.x = (Math.sin(state.clock.getElapsedTime() * 20) * (speed / maxSpeed)) / 100
-    chassisBody.current!.children[0].rotation.z = (Math.cos(state.clock.getElapsedTime() * 20) * (speed / maxSpeed)) / 100
+    if (chassisBody.current) {
+      // lean chassis
+      chassisBody.current.children[0].rotation.z = MathUtils.lerp(chassisBody.current.children[0].rotation.z, (-steeringValue * speed) / 200, delta * 4)
+
+      // Vibrations
+      chassisBody.current.children[0].rotation.x = (Math.sin(state.clock.getElapsedTime() * 20) * (speed / maxSpeed)) / 100
+      chassisBody.current.children[0].rotation.z = (Math.cos(state.clock.getElapsedTime() * 20) * (speed / maxSpeed)) / 100
+    }
   })
 
   const ToggledAccelerateAudio = useToggle(AccelerateAudio, ['ready', 'sound'])
